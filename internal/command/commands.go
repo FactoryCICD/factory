@@ -6,7 +6,7 @@ import (
 
 var Commands map[string]cli.CommandFactory
 
-func initCommands(
+func InitCommands(
 	workingDir string,
 ) {
 	meta := Meta{

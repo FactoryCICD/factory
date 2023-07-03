@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/factorycicd/factory/internal/command"
 	"github.com/mitchellh/cli"
 )
 
@@ -32,11 +33,14 @@ func realMain() int {
 	}
 
 	// Initialize the commands
-	c.initCommands(originalWd) // needs to be added to github.com/cwagne17/factoryci/factory_agent/internal/command
+	command.InitCommands(originalWd)
 
 	// look into mitcheelh/cli package
 	cliRunner := &cli.CLI{
+		Name:       binName,
 		Args:       args,
+		Commands:   command.Commands,
+		HelpFunc:   command.HelpFunc,
 		HelpWriter: os.Stdout,
 	}
 
