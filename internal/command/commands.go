@@ -1,6 +1,8 @@
 package command
 
-import "github.com/mitchellh/cli"
+import (
+	"github.com/mitchellh/cli"
+)
 
 var Commands map[string]cli.CommandFactory
 

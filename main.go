@@ -32,7 +32,7 @@ func realMain() int {
 	}
 
 	// Initialize the commands
-	// command.initCommands(originalWd) // needs to be added to github.com/cwagne17/factoryci/factory_agent/internal/command
+	InitCommands(originalWd) // needs to be added to github.com/cwagne17/factoryci/factory_agent/internal/command
 
 	// look into mitcheelh/cli package
 	cliRunner := &cli.CLI{
