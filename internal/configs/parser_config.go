@@ -7,7 +7,7 @@ import (
 )
 
 // check out terraoform\internal\config\parser_config.go line 51
-func (p *Parser) loadConfigFile(path string) (*File, hcl.Diagnostics) {
+func (p *Parser) LoadConfigFile(path string) (*File, hcl.Diagnostics) {
 	body, diags := p.LoadHCLFile(path)
 	if body == nil {
 		return nil, diags

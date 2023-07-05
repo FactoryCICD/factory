@@ -1,8 +1,13 @@
 package command
 
 import (
-	"log"
+	"path/filepath"
 	"strings"
+
+	"github.com/factorycicd/factory/internal/command/arguments"
+	"github.com/factorycicd/factory/internal/configs"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/spf13/afero"
 )
 
 // ValidateCommand is a Command implementation that validates factory files.
@@ -11,8 +16,53 @@ type ValidateCommand struct {
 }
 
 func (c *ValidateCommand) Run(rawArgs []string) int {
-	log.Printf("Running validate command with args: %v", rawArgs)
-	return 0
+	// Parse and validate flags
+	args, diags := arguments.ParseValidate(rawArgs)
+	if diags.HasErrors() {
+		c.UI.Error(diags.Error())
+		cmd := &ValidateCommand{}
+		cmd.Help()
+		return 1
+	}
+
+	dir, err := filepath.Abs(args.Path)
+	if err != nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unable to locate module",
+			Detail:   err.Error(),
+		})
+	}
+
+	validateDiags := c.validate(dir)
+	diags = diags.Extend(validateDiags)
+
+	if diags.HasErrors() {
+		c.UI.Error(diags.Error())
+		return 1
+	}
+
+	return 0 // have an error parser instead of returning 0
+}
+
+func (c *ValidateCommand) validate(dir string) hcl.Diagnostics {
+	var diags hcl.Diagnostics
+
+	fs := afero.NewOsFs()
+	parser := configs.NewParser(fs)
+
+	paths, dirDiags := parser.DirFiles(dir)
+	if dirDiags.HasErrors() {
+		diags = diags.Extend(dirDiags)
+		return diags
+	}
+
+	_, fileDiags := parser.LoadFiles(paths)
+	if fileDiags.HasErrors() {
+		diags = diags.Extend(fileDiags)
+	}
+
+	return diags
 }
 
 // Help implements cli.Command.
