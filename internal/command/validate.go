@@ -1,6 +1,8 @@
 package command
 
 import (
+	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -34,11 +36,35 @@ func (c *ValidateCommand) Run(rawArgs []string) int {
 		})
 	}
 
-	validateDiags := c.validate(dir)
-	diags = diags.Extend(validateDiags)
+	// If recursive is set to true, walk the directory and validate all subdirectories
+	if args.Recursive {
+		walkDiags := filepath.Walk(args.Path, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			fmt.Println(path)
+			if info.IsDir() {
+				validateDiags := c.validate(path)
+				diags = diags.Extend(validateDiags)
+			}
+			return nil
+		})
+		if walkDiags != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Unable to validate directory",
+				Detail:   walkDiags.Error(),
+			})
+		}
+	} else {
+		dirDiags := c.validate(dir)
+		diags = diags.Extend(dirDiags)
+	}
 
 	if diags.HasErrors() {
-		c.UI.Error(diags.Error())
+		for _, diag := range diags {
+			c.UI.Error(diag.Error())
+		}
 		return 1
 	}
 
@@ -77,7 +103,8 @@ Usage: factory validate [options]
 	
 Options:
 
-  TBD
+  -path <path> Path to the directory to validate. Defaults to the current directory.
+  -recursive   Recursively validate all subdirectories as well.
 `
 	return strings.TrimSpace(helpText)
 }

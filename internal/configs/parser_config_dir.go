@@ -45,6 +45,9 @@ func (p *Parser) LoadFiles(paths []string) ([]*File, hcl.Diagnostics) {
 	return files, diags
 }
 
+// This is used to find all the files in a module directory.
+// It does this by looking for all files with the .hcl extension
+// in the immediate directory.
 func (p *Parser) DirFiles(dir string) (primary []string, diags hcl.Diagnostics) {
 	infos, err := p.fs.ReadDir(dir)
 	if err != nil {
