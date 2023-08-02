@@ -13,7 +13,7 @@ func InitCommands(
 ) {
 	meta := Meta{
 		WorkingDir: workingDir,
-		UI: &cli.BasicUi{
+		Ui: &cli.BasicUi{
 			Writer:      os.Stdout,
 			ErrorWriter: os.Stderr,
 			Reader:      os.Stdin,

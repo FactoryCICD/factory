@@ -17,7 +17,6 @@ func main() {
 func realMain() int {
 	log.Printf("[INFO] Starting factory_agent")
 	log.Printf("[INFO] Go runtime verion: %s", runtime.Version())
-	log.Printf("[INFO] CLI args: %#v", os.Args)
 
 	// Load cliconfig using LoadConfig()
 	// Handle any errors

@@ -22,7 +22,7 @@ func (p *Parser) LoadConfigFile(path string) (*File, hcl.Diagnostics) {
 		switch block.Type {
 
 		case "pipeline":
-			log.Printf("[INFO] Pipeline block found, decoding in progress")
+			log.Printf("[DEBUG] Pipeline block found, decoding in progress")
 
 			content, contentDiags := block.Body.Content(pipelineBlockSchema)
 			diags = append(diags, contentDiags...)
@@ -31,7 +31,7 @@ func (p *Parser) LoadConfigFile(path string) (*File, hcl.Diagnostics) {
 				switch innerBlock.Type {
 
 				case "filter":
-					log.Printf("[INFO] Filter block found, decoding in progress")
+					log.Printf("[DEBUG] Filter block found, decoding in progress")
 
 					filterCfg, filterDiags := decodeFilterBlock(innerBlock)
 					diags = append(diags, filterDiags...)
@@ -48,10 +48,10 @@ func (p *Parser) LoadConfigFile(path string) (*File, hcl.Diagnostics) {
 
 		// Check out line 493 of internal/configs/named_values.go in terraform
 		case "variables":
-			log.Printf("[INFO] Variables block found, decoding not yet implemented")
+			log.Printf("[DEBUG] Variables block found, decoding not yet implemented")
 
 		case "stage":
-			log.Printf("[INFO] Stage block found, decoding not yet implemented")
+			log.Printf("[DEBUG] Stage block found, decoding not yet implemented")
 
 		default:
 			// Should never happen beacause the above cases should be exhaustive
