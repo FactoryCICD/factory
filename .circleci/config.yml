@@ -1,0 +1,68 @@
+version: 2.1
+
+orbs:
+  go: circleci/go@1.7.3
+
+jobs:
+  build:
+    executor: 
+      name: go/default
+      tag: '1.20'
+    steps:
+      - checkout
+      - go/load-cache
+      - go/mod-download
+      - go/save-cache
+      - run:
+          name: Build
+          command: |
+            go build
+  
+  # Create Github Release
+  # This job should run only when a release branch is merged into main.
+  # If this case is satisfied then a github release will be tagged
+  gh_release:
+    parameters:
+      version:
+        type: string
+    executor:
+      dlc: true
+      name: docker/machine
+    steps:
+      - gh/setup
+      - when:
+          condition:
+            equal: [ << pipeline.git.branch >>, "main" ]
+          steps:
+            - run:
+                name: Create GitHub Release
+                command: gh release create <<parameters.version>> --target $CIRCLE_SHA1 -t <<parameters.version>>
+
+  # TODO: implement unit and integration tests
+  # test:
+
+  # TODO: implement docker lifecycles
+  # push:
+  # promote
+
+workflows:
+  build-and-test:
+    jobs:
+      - build
+      # Not Yet Implemented
+      # - test
+
+      # Not Yet Integrated: integrate 
+      # once versioning has been setup 
+      # for the project
+      #
+      # - gh_release:
+      #     context: GitHub
+      #     filters:
+      #       branches:
+      #         only:
+      #           - main
+
+
+
+
