@@ -8,25 +8,6 @@ import (
 	"github.com/hashicorp/hcl/v2"
 )
 
-// func (p *Parser) LoadConfigDir(path string) (*Module, hcl.Diagnostics) {
-// 	primaryPaths, overridePaths, _, diags := p.dirFiles(path, "")
-// 	if diags.HasErrors() {
-// 		return nil, diags
-// 	}
-
-// 	primary, fDiags := p.loadFiles(primaryPaths, false)
-// 	diags = append(diags, fDiags...)
-// 	override, fDiags := p.loadFiles(overridePaths, true)
-// 	diags = append(diags, fDiags...)
-
-// 	mod, modDiags := NewModule(primary, override)
-// 	diags = append(diags, modDiags...)
-
-// 	mod.SourceDir = path
-
-// 	return mod, diags
-// }
-
 func (p *Parser) LoadFiles(paths []string) ([]*File, hcl.Diagnostics) {
 	var files []*File
 	var diags hcl.Diagnostics
@@ -45,6 +26,9 @@ func (p *Parser) LoadFiles(paths []string) ([]*File, hcl.Diagnostics) {
 	return files, diags
 }
 
+// This is used to find all the files in a module directory.
+// It does this by looking for all files with the .hcl extension
+// in the immediate directory.
 func (p *Parser) DirFiles(dir string) (primary []string, diags hcl.Diagnostics) {
 	infos, err := p.fs.ReadDir(dir)
 	if err != nil {
