@@ -1,6 +1,8 @@
 package configs
 
-import "github.com/hashicorp/hcl/v2"
+import (
+	"github.com/hashicorp/hcl/v2"
+)
 
 type Filter struct {
 	Config hcl.Body
