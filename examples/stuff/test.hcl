@@ -27,13 +27,13 @@ pipeline "foo-bar" {
 
 # Global Variable definition for all stages
 variables {
-  foo = "bar" # Optional
+  foo = "global" # Optional
 }
 
 # Supports multiple "unique" stage declarations
 stage "stage1" {
   variables {
-    foo = "bar" # Variable overwrites the global variable for this stage
+    foo = "stage1" # Variable overwrites the global variable for this stage
   }
 
   # Supports multiple "unique" run declarations

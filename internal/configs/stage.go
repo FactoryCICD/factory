@@ -2,14 +2,9 @@ package configs
 
 import "github.com/hashicorp/hcl/v2"
 
-type Step struct {
-	Command string
-	File    string
-}
-
 type Stage struct {
-	Variable []*Variables
-	Steps    []*Step
+	Name      string
+	RunBlocks []RunBlock
 }
 
 var stageBlockSchema = &hcl.BodySchema{

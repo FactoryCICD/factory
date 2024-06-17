@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // LoadConfigFile loads a configuration file from the specified path and returns
@@ -58,49 +57,39 @@ func (p *Parser) LoadConfigFile(path string) (*File, hcl.Diagnostics) {
 		// Check out line 493 of internal/configs/named_values.go in terraform
 		case "variables":
 			log.Printf("[DEBUG] Variables block found, decoding in progress")
-			variables, varDiag := decodeVariableBlock(block.Body, file, GlobalScope)
+			varDiag := decodeVariableBlock(block.Body, file, GlobalScope, "")
 			diags = append(diags, varDiag...)
-			file.Variables.Merge(variables)
 		case "stage":
 			log.Printf("[DEBUG] Stage block found, decoding not yet implemented")
 			content, contDiags := block.Body.Content(stageBlockSchema)
 			diags = append(diags, contDiags...)
+			stage := &Stage{
+				Name: block.Labels[0],
+			}
 
 			for _, inner := range content.Blocks {
 				switch inner.Type {
 				case "variables":
-					vars, varDiags := decodeVariableBlock(inner.Body, file, ModuleScope)
+					varDiags := decodeVariableBlock(inner.Body, file, StageScope, block.Labels[0])
 					diags = append(diags, varDiags...)
-					file.Variables.Merge(vars)
 				case "run":
-					fmt.Println(inner.Labels[0])
-					fmt.Println(inner.Body)
 					// Decode Run block
 					run, d := inner.Body.Content(runBlockSchema)
 					diags = append(diags, d...)
 
-					runBlock := RunBlock{}
-					for _, attr := range run.Attributes {
-						if len(attr.Expr.Variables()) > 0 {
-							fmt.Println("Expression has variables")
-							fmt.Println(attr.Expr.Variables())
-							val, _ := attr.Expr.Value(&hcl.EvalContext{
-								Variables: map[string]cty.Value{
-									"var": cty.MapVal(map[string]cty.Value{"foo": cty.StringVal("hello")}),
-								},
-							})
-
-							fmt.Println(val.AsString())
-						} else {
-							values, _ := attr.Expr.Value(&hcl.EvalContext{})
-
-							fmt.Println(values.AsString())
-						}
-
-						runBlock.Commands = append(runBlock.Commands, attr.Name)
+					runBlock := RunBlock{
+						Name: inner.Labels[0],
 					}
+					for _, attr := range run.Attributes {
+						val, _ := attr.Expr.Value(file.Variables.GetVariableContext(block.Labels[0]))
+						fmt.Println(val.AsString())
+						runBlock.Commands = append(runBlock.Commands, val.AsString())
+					}
+
+					stage.RunBlocks = append(stage.RunBlocks, runBlock)
 				}
 			}
+			file.Stages = append(file.Stages, stage)
 		default:
 			// Should never happen beacause the above cases should be exhaustive
 			// for all block type names in our schema.

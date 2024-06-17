@@ -10,9 +10,8 @@ import (
 type Scope string
 
 const (
-	GlobalScope   Scope = "global"
-	ModuleScope   Scope = "module"
-	ResourceScope Scope = "resource"
+	GlobalScope Scope = "global"
+	StageScope  Scope = "module"
 )
 
 /*
@@ -21,28 +20,24 @@ Current issues with variables. Resolving the variables such as var.foo or resolv
 Scopes, there is only 1 global scope but can be many module and resource scopes.
 */
 type Variables struct {
-	GlobalVariables   map[string]cty.Value
-	ModuleVariables   map[string]cty.Value
-	ResourceVariables map[string]cty.Value
+	GlobalVariables map[string]cty.Value
+	StageVariables  map[string]map[string]cty.Value
 }
 
 func NewVariables() *Variables {
 	return &Variables{
-		GlobalVariables:   make(map[string]cty.Value),
-		ModuleVariables:   make(map[string]cty.Value),
-		ResourceVariables: make(map[string]cty.Value),
+		GlobalVariables: make(map[string]cty.Value),
+		StageVariables:  make(map[string]map[string]cty.Value),
 	}
 }
 
-func (v *Variables) Resolve(variable string, scope Scope) (cty.Value, bool) {
+func (v *Variables) Resolve(variable string, scope Scope, scopeID string) (cty.Value, bool) {
 	// Check the current scope
 	switch scope {
 	case GlobalScope:
 		return v.resolveGlobalScope(variable)
-	case ModuleScope:
-		return v.resolveModuleScope(variable)
-	case ResourceScope:
-		return v.resolveResourceScope(variable)
+	case StageScope:
+		return v.resolveStageScope(variable, scopeID)
 	}
 
 	panic(fmt.Sprintf("%s scope is not a valid scope", scope))
@@ -53,76 +48,71 @@ func (v *Variables) resolveGlobalScope(variable string) (cty.Value, bool) {
 	return vari, ok
 }
 
-func (v *Variables) resolveModuleScope(variable string) (cty.Value, bool) {
+func (v *Variables) resolveStageScope(variable, scopeID string) (cty.Value, bool) {
 	// Resolve the module, if not found, check global
-	vari, ok := v.ModuleVariables[variable]
+	_, ok := v.StageVariables[scopeID]
+	if !ok {
+		panic(fmt.Sprintf("Scope with ID: %s was not found.", scopeID))
+	}
+	vari, ok := v.StageVariables[scopeID][variable]
 	if !ok {
 		return v.resolveGlobalScope(variable)
 	}
 	return vari, ok
 }
 
-func (v *Variables) resolveResourceScope(variable string) (cty.Value, bool) {
-	// check resource scope, if not found, go up
-	vari, ok := v.ResourceVariables[variable]
-	if !ok {
-		return v.resolveModuleScope(variable)
-	}
-
-	return vari, ok
-}
-
-func (v *Variables) Insert(key string, value *cty.Value, scope Scope) {
+func (v *Variables) Insert(key string, value *cty.Value, scope Scope, scopeId string) {
 	fmt.Printf("inserting %s -> %s", key, value)
 	switch scope {
 	case GlobalScope:
-		fmt.Println(v.GlobalVariables)
 		v.GlobalVariables[key] = *value
-	case ModuleScope:
-		v.ModuleVariables[key] = *value
-	case ResourceScope:
-		v.ResourceVariables[key] = *value
+	case StageScope:
+		if _, ok := v.StageVariables[scopeId]; !ok {
+			// SCope not found, create the scope
+			v.StageVariables[scopeId] = make(map[string]cty.Value)
+		}
+		v.StageVariables[scopeId][key] = *value
 	default:
 		panic(fmt.Sprintf("%s is not a valid scope!", scope))
 	}
 }
 
-func (vari *Variables) Merge(others *Variables) {
-	for k, v := range others.GlobalVariables {
-		vari.Insert(k, &v, GlobalScope)
+func (v *Variables) GetVariableContext(scopeID string) *hcl.EvalContext {
+	stageScope, ok := v.StageVariables[scopeID]
+	if !ok {
+		// Stage scope was not found, just return the global scope
+		return &hcl.EvalContext{
+			Variables: v.GlobalVariables,
+		}
 	}
-	for k, v := range others.ModuleVariables {
-		vari.Insert(k, &v, ModuleScope)
+
+	// Combine the stage Scope with the global scope, overriding global variables
+	scope := make(map[string]cty.Value)
+	// First add the global variables
+	for k, v := range v.GlobalVariables {
+		scope[k] = v
 	}
-	for k, v := range others.ResourceVariables {
-		vari.Insert(k, &v, ResourceScope)
+	// Add the stage scope
+	for k, v := range stageScope {
+		scope[k] = v
+	}
+
+	return &hcl.EvalContext{
+		Variables: map[string]cty.Value{
+			"var": cty.MapVal(scope),
+		},
 	}
 }
 
-func decodeVariableBlock(body hcl.Body, file *File, scope Scope) (*Variables, hcl.Diagnostics) {
-	variables := NewVariables()
-
+func decodeVariableBlock(body hcl.Body, file *File, scope Scope, scopeID string) hcl.Diagnostics {
 	vars, diags := body.JustAttributes()
 
 	for _, attr := range vars {
 		name := attr.Name
-		var variable cty.Value
-		// Convert the attr to map[string]cty.Value
-		if len(attr.Expr.Variables()) > 0 {
-			// Attribute expression has variables, will need to look at scope to see
-			// if all variables are defined
-			val, _ := attr.Expr.Value(&hcl.EvalContext{})
-			variable = val
-		} else {
-			fmt.Println("No Variables found")
-			// No Variables, constant value
-			val, _ := attr.Expr.Value(nil)
-			variable = val
-			fmt.Println(variable)
-		}
+		value, _ := attr.Expr.Value(file.Variables.GetVariableContext(scopeID))
 
-		file.Variables.Insert(name, &variable, scope)
+		file.Variables.Insert(name, &value, scope, scopeID)
 	}
 
-	return variables, diags
+	return diags
 }

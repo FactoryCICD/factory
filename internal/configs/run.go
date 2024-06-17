@@ -9,5 +9,6 @@ var runBlockSchema = &hcl.BodySchema{
 }
 
 type RunBlock struct {
+	Name     string
 	Commands []string
 }
