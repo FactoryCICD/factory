@@ -22,7 +22,7 @@ func (p *Parser) LoadConfigFile(path string) (*File, hcl.Diagnostics) {
 		return nil, diags
 	}
 
-	file := &File{}
+	file := NewFile()
 
 	content, contentDiags := body.Content(configFileSchema)
 	diags = append(diags, contentDiags...)
@@ -60,7 +60,7 @@ func (p *Parser) LoadConfigFile(path string) (*File, hcl.Diagnostics) {
 			log.Printf("[DEBUG] Variables block found, decoding in progress")
 			variables, varDiag := decodeVariableBlock(block.Body, file, GlobalScope)
 			diags = append(diags, varDiag...)
-			file.Variables = append(file.Variables, variables)
+			file.Variables.Merge(variables)
 		case "stage":
 			log.Printf("[DEBUG] Stage block found, decoding not yet implemented")
 			content, contDiags := block.Body.Content(stageBlockSchema)
@@ -69,10 +69,9 @@ func (p *Parser) LoadConfigFile(path string) (*File, hcl.Diagnostics) {
 			for _, inner := range content.Blocks {
 				switch inner.Type {
 				case "variables":
-					vars, varDiags := decodeVariableBlock(inner.Body, file)
+					vars, varDiags := decodeVariableBlock(inner.Body, file, ModuleScope)
 					diags = append(diags, varDiags...)
-					fmt.Println(vars)
-
+					file.Variables.Merge(vars)
 				case "run":
 					fmt.Println(inner.Labels[0])
 					fmt.Println(inner.Body)

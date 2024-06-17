@@ -8,8 +8,15 @@ import (
 type File struct {
 	Filters []*Filter
 	// Variables map[Scope]*Variable
-	Variables Variables
+	Variables *Variables
 	// Stages    []*Stage
+}
+
+func NewFile() *File {
+	return &File{
+		Filters:   make([]*Filter, 0),
+		Variables: NewVariables(),
+	}
 }
 
 func (f *File) String() string {
@@ -25,12 +32,24 @@ func (f *File) String() string {
 	}
 	indent = indent[:len(indent)-1]
 	sb.WriteString(fmt.Sprintf("%s ]\n", indent))
-	sb.WriteString(fmt.Sprintf("%s Variables: [\n", indent))
+	sb.WriteString(fmt.Sprintf("%s Global Variables: [\n", indent))
 	indent += " "
-	for _, variable := range f.Variables {
-		for k, v := range variable.Variables {
-			sb.WriteString(fmt.Sprintf("%s {%s: %s}\n", indent, k, v.AsString()))
-		}
+	for k, v := range f.Variables.GlobalVariables {
+		sb.WriteString(fmt.Sprintf("%s {%s: %s}\n", indent, k, v.AsString()))
+	}
+	indent = indent[:len(indent)-1]
+	sb.WriteString(fmt.Sprintf("%s ]\n", indent))
+	sb.WriteString(fmt.Sprintf("%s Module Variables: [\n", indent))
+	indent += " "
+	for k, v := range f.Variables.ModuleVariables {
+		sb.WriteString(fmt.Sprintf("%s {%s: %s}\n", indent, k, v.AsString()))
+	}
+	indent = indent[:len(indent)-1]
+	sb.WriteString(fmt.Sprintf("%s ]\n", indent))
+	sb.WriteString(fmt.Sprintf("%s Resource Variables: [\n", indent))
+	indent += " "
+	for k, v := range f.Variables.ResourceVariables {
+		sb.WriteString(fmt.Sprintf("%s {%s: %s}\n", indent, k, v.AsString()))
 	}
 	indent = indent[:len(indent)-1]
 	sb.WriteString(fmt.Sprintf("%s ]\n", indent))

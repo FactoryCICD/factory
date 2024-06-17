@@ -8,7 +8,7 @@ type Step struct {
 }
 
 type Stage struct {
-	Variable []*Variable
+	Variable []*Variables
 	Steps    []*Step
 }
 

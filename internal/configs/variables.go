@@ -15,10 +15,23 @@ const (
 	ResourceScope Scope = "resource"
 )
 
+/*
+Current issues with variables. Resolving the variables such as var.foo or resolving objects var.foo.bar
+
+Scopes, there is only 1 global scope but can be many module and resource scopes.
+*/
 type Variables struct {
 	GlobalVariables   map[string]cty.Value
 	ModuleVariables   map[string]cty.Value
 	ResourceVariables map[string]cty.Value
+}
+
+func NewVariables() *Variables {
+	return &Variables{
+		GlobalVariables:   make(map[string]cty.Value),
+		ModuleVariables:   make(map[string]cty.Value),
+		ResourceVariables: make(map[string]cty.Value),
+	}
 }
 
 func (v *Variables) Resolve(variable string, scope Scope) (cty.Value, bool) {
@@ -60,19 +73,34 @@ func (v *Variables) resolveResourceScope(variable string) (cty.Value, bool) {
 }
 
 func (v *Variables) Insert(key string, value *cty.Value, scope Scope) {
+	fmt.Printf("inserting %s -> %s", key, value)
 	switch scope {
 	case GlobalScope:
+		fmt.Println(v.GlobalVariables)
 		v.GlobalVariables[key] = *value
 	case ModuleScope:
 		v.ModuleVariables[key] = *value
 	case ResourceScope:
 		v.ResourceVariables[key] = *value
+	default:
+		panic(fmt.Sprintf("%s is not a valid scope!", scope))
 	}
-	panic(fmt.Sprintf("%s is not a valid scope!\n", key))
+}
+
+func (vari *Variables) Merge(others *Variables) {
+	for k, v := range others.GlobalVariables {
+		vari.Insert(k, &v, GlobalScope)
+	}
+	for k, v := range others.ModuleVariables {
+		vari.Insert(k, &v, ModuleScope)
+	}
+	for k, v := range others.ResourceVariables {
+		vari.Insert(k, &v, ResourceScope)
+	}
 }
 
 func decodeVariableBlock(body hcl.Body, file *File, scope Scope) (*Variables, hcl.Diagnostics) {
-	variables := &Variables{}
+	variables := NewVariables()
 
 	vars, diags := body.JustAttributes()
 
@@ -86,9 +114,11 @@ func decodeVariableBlock(body hcl.Body, file *File, scope Scope) (*Variables, hc
 			val, _ := attr.Expr.Value(&hcl.EvalContext{})
 			variable = val
 		} else {
+			fmt.Println("No Variables found")
 			// No Variables, constant value
 			val, _ := attr.Expr.Value(nil)
 			variable = val
+			fmt.Println(variable)
 		}
 
 		file.Variables.Insert(name, &variable, scope)
