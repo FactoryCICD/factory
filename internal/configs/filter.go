@@ -2,6 +2,7 @@ package configs
 
 import (
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
 )
 
 type Include struct {
@@ -89,6 +90,15 @@ func decodeStringSliceAttribute(attr *hcl.Attribute, diags *hcl.Diagnostics) []s
 	p, d := attr.Expr.Value(nil)
 	*diags = append(*diags, d...)
 	for _, val := range p.AsValueSlice() {
+		if val.Type() != cty.String {
+			*diags = append(*diags, &hcl.Diagnostic{
+				Severity:   hcl.DiagError,
+				Summary:    "Value within paths or branches must be of string type",
+				Detail:     "Invalid type for branch or path",
+				Expression: attr.Expr,
+			})
+			return []string{}
+		}
 		result = append(result, val.AsString())
 	}
 	return result
