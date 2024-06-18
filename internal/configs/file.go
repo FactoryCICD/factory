@@ -25,37 +25,36 @@ func (f *File) String() string {
 	// Filters
 	sb.WriteString(fmt.Sprintf("%s Pipeline: [\n", indent(1)))
 	for _, pipeline := range f.Pipelines {
+		// Filter
+		filter := pipeline.Filter
 		sb.WriteString(fmt.Sprintf("%s %s: {\n", indent(2), pipeline.Name))
-		sb.WriteString(fmt.Sprintf("%s Filters: [\n", indent(3)))
-		for _, filter := range f.Pipelines[0].Filters {
-			sb.WriteString(fmt.Sprintf("%s Filter: {\n", indent(4)))
-			sb.WriteString(fmt.Sprintf("%s Exclude: {\n", indent(5)))
-			sb.WriteString(fmt.Sprintf("%s Paths: [\n", indent(6)))
-			for _, path := range filter.Exclude.Paths {
-				sb.WriteString(fmt.Sprintf("%s %s\n", indent(7), path))
-			}
-			sb.WriteString(fmt.Sprintf("%s ]\n", indent(6)))
-			sb.WriteString(fmt.Sprintf("%s Branches: [\n", indent(6)))
-			for _, branch := range filter.Exclude.Branches {
-				sb.WriteString(fmt.Sprintf("%s %s\n", indent(7), branch))
-			}
-			sb.WriteString(fmt.Sprintf("%s ]\n", indent(6)))
-			sb.WriteString(fmt.Sprintf("%s }\n", indent(5)))
-			sb.WriteString(fmt.Sprintf("%s Include {\n", indent(5)))
-			sb.WriteString(fmt.Sprintf("%s Paths: [\n", indent(6)))
-			for _, path := range filter.Include.Paths {
-				sb.WriteString(fmt.Sprintf("%s %s\n", indent(7), path))
-			}
-			sb.WriteString(fmt.Sprintf("%s ]\n", indent(6)))
-			sb.WriteString(fmt.Sprintf("%s Branches: [\n", indent(6)))
-			for _, branch := range filter.Include.Branches {
-				sb.WriteString(fmt.Sprintf("%s %s\n", indent(7), branch))
-			}
-			sb.WriteString(fmt.Sprintf("%s ]\n", indent(6)))
-			sb.WriteString(fmt.Sprintf("%s }\n", indent(5)))
-			sb.WriteString(fmt.Sprintf("%s }\n", indent(4)))
+		sb.WriteString(fmt.Sprintf("%s Filter: {\n", indent(3)))
+		sb.WriteString(fmt.Sprintf("%s Exclude: {\n", indent(4)))
+		sb.WriteString(fmt.Sprintf("%s Paths: [\n", indent(5)))
+		for _, path := range filter.Exclude.Paths {
+			sb.WriteString(fmt.Sprintf("%s %s\n", indent(6), path))
 		}
-		sb.WriteString(fmt.Sprintf("%s ]\n", indent(3)))
+		sb.WriteString(fmt.Sprintf("%s ]\n", indent(5)))
+		sb.WriteString(fmt.Sprintf("%s Branches: [\n", indent(5)))
+		for _, branch := range filter.Exclude.Branches {
+			sb.WriteString(fmt.Sprintf("%s %s\n", indent(6), branch))
+		}
+		sb.WriteString(fmt.Sprintf("%s ]\n", indent(5)))
+		sb.WriteString(fmt.Sprintf("%s }\n", indent(4)))
+		sb.WriteString(fmt.Sprintf("%s Include {\n", indent(4)))
+		sb.WriteString(fmt.Sprintf("%s Paths: [\n", indent(5)))
+		for _, path := range filter.Include.Paths {
+			sb.WriteString(fmt.Sprintf("%s %s\n", indent(6), path))
+		}
+		sb.WriteString(fmt.Sprintf("%s ]\n", indent(5)))
+		sb.WriteString(fmt.Sprintf("%s Branches: [\n", indent(5)))
+		for _, branch := range filter.Include.Branches {
+			sb.WriteString(fmt.Sprintf("%s %s\n", indent(6), branch))
+		}
+		sb.WriteString(fmt.Sprintf("%s ]\n", indent(5)))
+		sb.WriteString(fmt.Sprintf("%s }\n", indent(4)))
+		sb.WriteString(fmt.Sprintf("%s }\n", indent(3)))
+		// Stages
 		sb.WriteString(fmt.Sprintf("%s Stage Definitions: [\n", indent(3)))
 		for _, stage := range pipeline.Stages {
 			sb.WriteString(fmt.Sprintf("%s {\n", indent(4)))

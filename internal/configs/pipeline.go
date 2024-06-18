@@ -26,15 +26,14 @@ type StageDefinition struct {
 }
 
 type Pipeline struct {
-	Name    string
-	Filters []*Filter
-	Stages  []*StageDefinition
+	Name   string
+	Filter *Filter
+	Stages []*StageDefinition
 }
 
 func NewPipeline() *Pipeline {
 	return &Pipeline{
-		Filters: make([]*Filter, 0),
-		Stages:  make([]*StageDefinition, 0),
+		Stages: make([]*StageDefinition, 0),
 	}
 }
 
@@ -50,9 +49,7 @@ func decodePipelineBlock(block *hcl.Block) (*Pipeline, hcl.Diagnostics) {
 
 			filterCfg, filterDiags := decodeFilterBlock(innerBlock)
 			diags = append(diags, filterDiags...)
-			if filterCfg != nil {
-				pipeline.Filters = append(pipeline.Filters, filterCfg)
-			}
+			pipeline.Filter = filterCfg
 		default:
 			// Should never happen beacause the above cases should be exhaustive
 			// for all block type names in our schema.
