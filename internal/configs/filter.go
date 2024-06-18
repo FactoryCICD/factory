@@ -1,20 +1,17 @@
 package configs
 
 import (
-	"fmt"
-
 	"github.com/hashicorp/hcl/v2"
-	"github.com/zclconf/go-cty/cty"
 )
 
 type Include struct {
-	Paths    cty.Value
-	Branches cty.Value
+	Paths    []string
+	Branches []string
 }
 
 type Exclude struct {
-	Paths    cty.Value
-	Branches cty.Value
+	Paths    []string
+	Branches []string
 }
 
 type Filter struct {
@@ -40,36 +37,59 @@ func decodeFilterBlock(block *hcl.Block) (*Filter, hcl.Diagnostics) {
 	for _, block := range content.Blocks {
 		switch block.Type {
 		case "include":
-			include := Include{}
-			includeAttributes, incDiags := block.Body.JustAttributes()
-			for _, attr := range includeAttributes {
-				switch attr.Name {
-				case "paths":
-					include.Paths, _ = attr.Expr.Value(nil)
-				case "branches":
-					include.Branches, _ = attr.Expr.Value(nil)
-				}
-			}
+			include, incDiags := decodeIncludeOrExcludeBlock(block)
 			diags = append(diags, incDiags...)
-			filter.Include = include
+			filter.Include = *include.(*Include)
 		case "exclude":
-			exclude := Exclude{}
-			excludeAttr, exDiag := block.Body.JustAttributes()
-			for _, attr := range excludeAttr {
-				switch attr.Name {
-				case "paths":
-					exclude.Paths, _ = attr.Expr.Value(nil)
-				case "branches":
-					exclude.Branches, _ = attr.Expr.Value(nil)
-				}
-			}
-			diags = append(diags, exDiag...)
-			filter.Exclude = exclude
+			exclude, exDiags := decodeIncludeOrExcludeBlock(block)
+			diags = append(diags, exDiags...)
+			filter.Exclude = *exclude.(*Exclude)
 		}
 	}
 
-	// Decode stages attribute
-	stages := content.Attributes["stages"]
-	fmt.Println(stages.Expr)
 	return filter, diags
+}
+
+func decodeIncludeOrExcludeBlock(block *hcl.Block) (interface{}, hcl.Diagnostics) {
+	attributes, diags := block.Body.JustAttributes()
+	var result interface{}
+	switch block.Type {
+	case "include":
+		include := Include{}
+		result = &include
+	case "exclude":
+		exclude := Exclude{}
+		result = &exclude
+	}
+
+	for _, attr := range attributes {
+		switch attr.Name {
+		case "paths":
+			paths := decodeStringSliceAttribute(attr, &diags)
+			if block.Type == "include" {
+				result.(*Include).Paths = paths
+			} else {
+				result.(*Exclude).Paths = paths
+			}
+		case "branches":
+			branches := decodeStringSliceAttribute(attr, &diags)
+			if block.Type == "include" {
+				result.(*Include).Branches = branches
+			} else {
+				result.(*Exclude).Branches = branches
+			}
+		}
+	}
+
+	return result, diags
+}
+
+func decodeStringSliceAttribute(attr *hcl.Attribute, diags *hcl.Diagnostics) []string {
+	var result []string
+	p, d := attr.Expr.Value(nil)
+	*diags = append(*diags, d...)
+	for _, val := range p.AsValueSlice() {
+		result = append(result, val.AsString())
+	}
+	return result
 }

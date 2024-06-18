@@ -34,6 +34,8 @@ func (p *Parser) LoadConfigFile(path string) (*File, hcl.Diagnostics) {
 
 			content, contentDiags := block.Body.Content(pipelineBlockSchema)
 			diags = append(diags, contentDiags...)
+			pipeline := NewPipeline()
+			pipeline.Name = block.Labels[0]
 
 			for _, innerBlock := range content.Blocks {
 				switch innerBlock.Type {
@@ -44,7 +46,7 @@ func (p *Parser) LoadConfigFile(path string) (*File, hcl.Diagnostics) {
 					filterCfg, filterDiags := decodeFilterBlock(innerBlock)
 					diags = append(diags, filterDiags...)
 					if filterCfg != nil {
-						file.Filters = append(file.Filters, filterCfg)
+						pipeline.Filters = append(pipeline.Filters, filterCfg)
 					}
 
 				default:
@@ -54,6 +56,30 @@ func (p *Parser) LoadConfigFile(path string) (*File, hcl.Diagnostics) {
 				}
 			}
 
+			// Add the stages
+			stages := content.Attributes["stages"]
+
+			stagesVal, _ := stages.Expr.Value(nil)
+			stageDefs := make([]*StageDefinition, 0)
+			for _, el := range stagesVal.AsValueSlice() {
+				elMap := el.AsValueMap()
+				sd := &StageDefinition{}
+				sd.Name = elMap["name"].AsString()
+				if dependsOn, ok := elMap["depends_on"]; ok {
+					for _, dep := range dependsOn.AsValueSlice() {
+						sd.DependsOn = append(sd.DependsOn, dep.AsString())
+					}
+				}
+				if namespaces, ok := elMap["namespaces"]; ok {
+					for _, ns := range namespaces.AsValueSlice() {
+						sd.Namespaces = append(sd.Namespaces, ns.AsString())
+					}
+				}
+				stageDefs = append(stageDefs, sd)
+			}
+			fmt.Println(stages.Expr.Value(nil))
+			pipeline.Stages = stageDefs
+			file.Pipelines = append(file.Pipelines, pipeline)
 		// Check out line 493 of internal/configs/named_values.go in terraform
 		case "variables":
 			log.Printf("[DEBUG] Variables block found, decoding in progress")
@@ -80,10 +106,17 @@ func (p *Parser) LoadConfigFile(path string) (*File, hcl.Diagnostics) {
 					runBlock := RunBlock{
 						Name: inner.Labels[0],
 					}
-					for _, attr := range run.Attributes {
-						val, _ := attr.Expr.Value(file.Variables.GetVariableContext(block.Labels[0]))
-						fmt.Println(val.AsString())
+
+					if command, ok := run.Attributes["command"]; ok {
+						val, d := command.Expr.Value(file.Variables.GetVariableContext(block.Labels[0]))
+						diags = append(diags, d...)
 						runBlock.Commands = append(runBlock.Commands, val.AsString())
+					}
+
+					if f, ok := run.Attributes["file"]; ok {
+						val, d := f.Expr.Value(file.Variables.GetVariableContext(block.Labels[0]))
+						diags = append(diags, d...)
+						runBlock.File = val.AsString()
 					}
 
 					stage.RunBlocks = append(stage.RunBlocks, runBlock)
