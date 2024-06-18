@@ -1,7 +1,6 @@
 package configs
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/hashicorp/hcl/v2"
@@ -28,57 +27,10 @@ func (p *Parser) LoadConfigFile(path string) (*File, hcl.Diagnostics) {
 
 	for _, block := range content.Blocks {
 		switch block.Type {
-
 		case "pipeline":
 			log.Printf("[DEBUG] Pipeline block found, decoding in progress")
-
-			content, contentDiags := block.Body.Content(pipelineBlockSchema)
-			diags = append(diags, contentDiags...)
-			pipeline := NewPipeline()
-			pipeline.Name = block.Labels[0]
-
-			for _, innerBlock := range content.Blocks {
-				switch innerBlock.Type {
-
-				case "filter":
-					log.Printf("[DEBUG] Filter block found, decoding in progress")
-
-					filterCfg, filterDiags := decodeFilterBlock(innerBlock)
-					diags = append(diags, filterDiags...)
-					if filterCfg != nil {
-						pipeline.Filters = append(pipeline.Filters, filterCfg)
-					}
-
-				default:
-					// Should never happen beacause the above cases should be exhaustive
-					// for all block type names in our schema.
-					continue
-				}
-			}
-
-			// Add the stages
-			stages := content.Attributes["stages"]
-
-			stagesVal, _ := stages.Expr.Value(nil)
-			stageDefs := make([]*StageDefinition, 0)
-			for _, el := range stagesVal.AsValueSlice() {
-				elMap := el.AsValueMap()
-				sd := &StageDefinition{}
-				sd.Name = elMap["name"].AsString()
-				if dependsOn, ok := elMap["depends_on"]; ok {
-					for _, dep := range dependsOn.AsValueSlice() {
-						sd.DependsOn = append(sd.DependsOn, dep.AsString())
-					}
-				}
-				if namespaces, ok := elMap["namespaces"]; ok {
-					for _, ns := range namespaces.AsValueSlice() {
-						sd.Namespaces = append(sd.Namespaces, ns.AsString())
-					}
-				}
-				stageDefs = append(stageDefs, sd)
-			}
-			fmt.Println(stages.Expr.Value(nil))
-			pipeline.Stages = stageDefs
+			pipeline, pDiags := decodePipelineBlock(block)
+			diags = append(diags, pDiags...)
 			file.Pipelines = append(file.Pipelines, pipeline)
 		// Check out line 493 of internal/configs/named_values.go in terraform
 		case "variables":
@@ -87,41 +39,8 @@ func (p *Parser) LoadConfigFile(path string) (*File, hcl.Diagnostics) {
 			diags = append(diags, varDiag...)
 		case "stage":
 			log.Printf("[DEBUG] Stage block found, decoding not yet implemented")
-			content, contDiags := block.Body.Content(stageBlockSchema)
-			diags = append(diags, contDiags...)
-			stage := &Stage{
-				Name: block.Labels[0],
-			}
-
-			for _, inner := range content.Blocks {
-				switch inner.Type {
-				case "variables":
-					varDiags := decodeVariableBlock(inner.Body, file, StageScope, block.Labels[0])
-					diags = append(diags, varDiags...)
-				case "run":
-					// Decode Run block
-					run, d := inner.Body.Content(runBlockSchema)
-					diags = append(diags, d...)
-
-					runBlock := RunBlock{
-						Name: inner.Labels[0],
-					}
-
-					if command, ok := run.Attributes["command"]; ok {
-						val, d := command.Expr.Value(file.Variables.GetVariableContext(block.Labels[0]))
-						diags = append(diags, d...)
-						runBlock.Commands = append(runBlock.Commands, val.AsString())
-					}
-
-					if f, ok := run.Attributes["file"]; ok {
-						val, d := f.Expr.Value(file.Variables.GetVariableContext(block.Labels[0]))
-						diags = append(diags, d...)
-						runBlock.File = val.AsString()
-					}
-
-					stage.RunBlocks = append(stage.RunBlocks, runBlock)
-				}
-			}
+			stage, stageDiags := decodeStageBlock(block, file)
+			diags = append(diags, stageDiags...)
 			file.Stages = append(file.Stages, stage)
 		default:
 			// Should never happen beacause the above cases should be exhaustive
@@ -148,19 +67,6 @@ var configFileSchema = &hcl.BodySchema{
 		{
 			Type:       "stage",
 			LabelNames: []string{"name"},
-		},
-	},
-}
-
-// pipelineBlockSchema is the schema for a top-level "pipeline" block in
-// a configuration file.
-var pipelineBlockSchema = &hcl.BodySchema{
-	Attributes: []hcl.AttributeSchema{
-		{Name: "stages", Required: true},
-	},
-	Blocks: []hcl.BlockHeaderSchema{
-		{
-			Type: "filter",
 		},
 	},
 }
