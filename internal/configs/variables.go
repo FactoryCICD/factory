@@ -62,7 +62,7 @@ func (v *Variables) resolveStageScope(variable, scopeID string) (cty.Value, bool
 }
 
 func (v *Variables) Insert(key string, value *cty.Value, scope Scope, scopeId string) {
-	fmt.Printf("inserting %s -> %s", key, value)
+	fmt.Printf("inserting %s -> %s\n", key, value.GoString())
 	switch scope {
 	case GlobalScope:
 		v.GlobalVariables[key] = *value
