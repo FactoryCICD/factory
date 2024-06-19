@@ -1,8 +1,6 @@
 package configs
 
 import (
-	"fmt"
-
 	"github.com/hashicorp/hcl/v2"
 )
 
@@ -29,9 +27,7 @@ func decodeRunBlock(block *hcl.Block, file *File, stageName string) (RunBlock, h
 
 	if command, ok := run.Attributes["command"]; ok {
 		val, d := command.Expr.Value(file.GetEvalContext(&stageName))
-		fmt.Println(d)
 		diags = append(diags, d...)
-		fmt.Println(val.GoString())
 		runBlock.Commands = append(runBlock.Commands, val.AsString())
 	}
 

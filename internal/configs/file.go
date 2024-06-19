@@ -28,7 +28,6 @@ func (f *File) GetEvalContext(scopeID *string) *hcl.EvalContext {
 			},
 		}
 	}
-
 	// Combine the stage Scope with the global scope, overriding global variables
 	scope := make(map[string]cty.Value)
 	// First add the global variables
@@ -42,6 +41,10 @@ func (f *File) GetEvalContext(scopeID *string) *hcl.EvalContext {
 		}
 	}
 
+	// Cannot create MapVal with an empty map, so return nil
+	if len(scope) == 0 {
+		return nil
+	}
 	return &hcl.EvalContext{
 		Variables: map[string]cty.Value{
 			"var": cty.MapVal(scope),

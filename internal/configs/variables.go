@@ -1,8 +1,6 @@
 package configs
 
 import (
-	"fmt"
-
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -29,36 +27,6 @@ func NewVariables() *Variables {
 		GlobalVariables: make(map[string]cty.Value),
 		StageVariables:  make(map[string]map[string]cty.Value),
 	}
-}
-
-func (v *Variables) Resolve(variable string, scope Scope, scopeID string) (cty.Value, bool) {
-	// Check the current scope
-	switch scope {
-	case GlobalScope:
-		return v.resolveGlobalScope(variable)
-	case StageScope:
-		return v.resolveStageScope(variable, scopeID)
-	}
-
-	panic(fmt.Sprintf("%s scope is not a valid scope", scope))
-}
-
-func (v *Variables) resolveGlobalScope(variable string) (cty.Value, bool) {
-	vari, ok := v.GlobalVariables[variable]
-	return vari, ok
-}
-
-func (v *Variables) resolveStageScope(variable, scopeID string) (cty.Value, bool) {
-	// Resolve the module, if not found, check global
-	_, ok := v.StageVariables[scopeID]
-	if !ok {
-		panic(fmt.Sprintf("Scope with ID: %s was not found.", scopeID))
-	}
-	vari, ok := v.StageVariables[scopeID][variable]
-	if !ok {
-		return v.resolveGlobalScope(variable)
-	}
-	return vari, ok
 }
 
 func (v *Variables) InsertStage(key string, value *cty.Value, scopeID string) {
