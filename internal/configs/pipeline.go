@@ -37,7 +37,7 @@ func NewPipeline() *Pipeline {
 	}
 }
 
-func decodePipelineBlock(block *hcl.Block) (*Pipeline, hcl.Diagnostics) {
+func decodePipelineBlock(block *hcl.Block, file *File) (*Pipeline, hcl.Diagnostics) {
 	content, diags := block.Body.Content(pipelineBlockSchema)
 	pipeline := NewPipeline()
 	pipeline.Name = block.Labels[0]
@@ -59,7 +59,8 @@ func decodePipelineBlock(block *hcl.Block) (*Pipeline, hcl.Diagnostics) {
 	// Add the stages
 	stages := content.Attributes["stages"]
 
-	stagesVal, _ := stages.Expr.Value(nil)
+	stagesVal, d := stages.Expr.Value(file.GetEvalContext(nil))
+	diags = append(diags, d...)
 	stageDefs := make([]*StageDefinition, 0)
 	for _, el := range stagesVal.AsValueSlice() {
 		elMap := el.AsValueMap()

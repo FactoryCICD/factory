@@ -23,10 +23,10 @@ func decodeStageBlock(block *hcl.Block, file *File) (*Stage, hcl.Diagnostics) {
 	for _, inner := range content.Blocks {
 		switch inner.Type {
 		case "variables":
-			varDiags := decodeVariableBlock(inner.Body, file, StageScope, block.Labels[0])
+			varDiags := decodeVariableBlock(inner, file, stage.Name)
 			diags = append(diags, varDiags...)
 		case "run":
-			runBlock, rbDiags := decodeRunBlock(inner, file)
+			runBlock, rbDiags := decodeRunBlock(inner, file, stage.Name)
 			diags = append(diags, rbDiags...)
 			stage.RunBlocks = append(stage.RunBlocks, runBlock)
 		}

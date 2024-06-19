@@ -19,7 +19,7 @@ type RunBlock struct {
 	File     string
 }
 
-func decodeRunBlock(block *hcl.Block, file *File) (RunBlock, hcl.Diagnostics) {
+func decodeRunBlock(block *hcl.Block, file *File, stageName string) (RunBlock, hcl.Diagnostics) {
 	// Decode Run block
 	run, diags := block.Body.Content(runBlockSchema)
 
@@ -28,14 +28,15 @@ func decodeRunBlock(block *hcl.Block, file *File) (RunBlock, hcl.Diagnostics) {
 	}
 
 	if command, ok := run.Attributes["command"]; ok {
-		val, d := command.Expr.Value(file.Variables.GetVariableContext(block.Labels[0]))
+		val, d := command.Expr.Value(file.GetEvalContext(&stageName))
+		fmt.Println(d)
 		diags = append(diags, d...)
-		fmt.Println(val)
+		fmt.Println(val.GoString())
 		runBlock.Commands = append(runBlock.Commands, val.AsString())
 	}
 
 	if f, ok := run.Attributes["file"]; ok {
-		val, d := f.Expr.Value(file.Variables.GetVariableContext(block.Labels[0]))
+		val, d := f.Expr.Value(file.GetEvalContext(&stageName))
 		diags = append(diags, d...)
 		runBlock.File = val.AsString()
 	}

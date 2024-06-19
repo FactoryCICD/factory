@@ -28,6 +28,7 @@ pipeline "foo-bar" {
 # Global Variable definition for all stages
 variables {
   foo = "global" # Optional
+  bar = "another"
 }
 
 # Supports multiple "unique" stage declarations
@@ -48,7 +49,7 @@ stage "stage1" {
         EOT
   }
   run "Push Docker Image" {
-    command = "docker push my-image:${var.foo}" # Uses the local variable defined in the stage first then the global variable
+    command = "docker push my-image:${var.bar}" # Uses the local variable defined in the stage first then the global variable
   }
 }
 

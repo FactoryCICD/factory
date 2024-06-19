@@ -3,12 +3,50 @@ package configs
 import (
 	"fmt"
 	"strings"
+
+	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
 )
 
 type File struct {
 	Pipelines []*Pipeline
 	Variables *Variables
 	Stages    []*Stage
+}
+
+func (f *File) GetEvalContext(scopeID *string) *hcl.EvalContext {
+	v := f.Variables
+	// No Scope, get the global context
+	if scopeID == nil {
+		if len(v.GlobalVariables) == 0 {
+			return nil
+		}
+
+		return &hcl.EvalContext{
+			Variables: map[string]cty.Value{
+				"var": cty.MapVal(v.GlobalVariables),
+			},
+		}
+	}
+
+	// Combine the stage Scope with the global scope, overriding global variables
+	scope := make(map[string]cty.Value)
+	// First add the global variables
+	for k, v := range v.GlobalVariables {
+		scope[k] = v
+	}
+	if stageScope, ok := v.StageVariables[*scopeID]; ok {
+		// Add the stage scope
+		for k, v := range stageScope {
+			scope[k] = v
+		}
+	}
+
+	return &hcl.EvalContext{
+		Variables: map[string]cty.Value{
+			"var": cty.MapVal(scope),
+		},
+	}
 }
 
 func NewFile() *File {

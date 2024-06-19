@@ -11,7 +11,7 @@ type Scope string
 
 const (
 	GlobalScope Scope = "global"
-	StageScope  Scope = "module"
+	StageScope  Scope = "stage"
 )
 
 /*
@@ -61,57 +61,39 @@ func (v *Variables) resolveStageScope(variable, scopeID string) (cty.Value, bool
 	return vari, ok
 }
 
-func (v *Variables) Insert(key string, value *cty.Value, scope Scope, scopeId string) {
-	fmt.Printf("inserting %s -> %s\n", key, value.GoString())
-	switch scope {
-	case GlobalScope:
-		v.GlobalVariables[key] = *value
-	case StageScope:
-		if _, ok := v.StageVariables[scopeId]; !ok {
-			// SCope not found, create the scope
-			v.StageVariables[scopeId] = make(map[string]cty.Value)
-		}
-		v.StageVariables[scopeId][key] = *value
-	default:
-		panic(fmt.Sprintf("%s is not a valid scope!", scope))
+func (v *Variables) InsertStage(key string, value *cty.Value, scopeID string) {
+	if _, ok := v.StageVariables[scopeID]; !ok {
+		// Scope not found, create the scope
+		v.StageVariables[scopeID] = make(map[string]cty.Value)
 	}
+	v.StageVariables[scopeID][key] = *value
 }
 
-func (v *Variables) GetVariableContext(scopeID string) *hcl.EvalContext {
-	stageScope, ok := v.StageVariables[scopeID]
-	if !ok {
-		// Stage scope was not found, just return the global scope
-		return &hcl.EvalContext{
-			Variables: v.GlobalVariables,
-		}
-	}
-
-	// Combine the stage Scope with the global scope, overriding global variables
-	scope := make(map[string]cty.Value)
-	// First add the global variables
-	for k, v := range v.GlobalVariables {
-		scope[k] = v
-	}
-	// Add the stage scope
-	for k, v := range stageScope {
-		scope[k] = v
-	}
-
-	return &hcl.EvalContext{
-		Variables: map[string]cty.Value{
-			"var": cty.MapVal(scope),
-		},
-	}
+func (v *Variables) InsertGlobal(key string, value *cty.Value) {
+	v.GlobalVariables[key] = *value
 }
 
-func decodeVariableBlock(body hcl.Body, file *File, scope Scope, scopeID string) hcl.Diagnostics {
-	vars, diags := body.JustAttributes()
+func decodeGlobalVariableBlock(block *hcl.Block, file *File) hcl.Diagnostics {
+	vars, diags := block.Body.JustAttributes()
 
 	for _, attr := range vars {
 		name := attr.Name
-		value, _ := attr.Expr.Value(file.Variables.GetVariableContext(scopeID))
+		value, d := attr.Expr.Value(file.GetEvalContext(nil))
+		diags = append(diags, d...)
+		file.Variables.InsertGlobal(name, &value)
+	}
 
-		file.Variables.Insert(name, &value, scope, scopeID)
+	return diags
+}
+
+func decodeVariableBlock(block *hcl.Block, file *File, scopeID string) hcl.Diagnostics {
+	vars, diags := block.Body.JustAttributes()
+
+	for _, attr := range vars {
+		name := attr.Name
+		value, d := attr.Expr.Value(file.GetEvalContext(&scopeID))
+		diags = append(diags, d...)
+		file.Variables.InsertStage(name, &value, scopeID)
 	}
 
 	return diags

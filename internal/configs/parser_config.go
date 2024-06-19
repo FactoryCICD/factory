@@ -29,16 +29,16 @@ func (p *Parser) LoadConfigFile(path string) (*File, hcl.Diagnostics) {
 		switch block.Type {
 		case "pipeline":
 			log.Printf("[DEBUG] Pipeline block found, decoding in progress")
-			pipeline, pDiags := decodePipelineBlock(block)
+			pipeline, pDiags := decodePipelineBlock(block, file)
 			diags = append(diags, pDiags...)
 			file.Pipelines = append(file.Pipelines, pipeline)
 		// Check out line 493 of internal/configs/named_values.go in terraform
 		case "variables":
 			log.Printf("[DEBUG] Variables block found, decoding in progress")
-			varDiag := decodeVariableBlock(block.Body, file, GlobalScope, "")
+			varDiag := decodeGlobalVariableBlock(block, file)
 			diags = append(diags, varDiag...)
 		case "stage":
-			log.Printf("[DEBUG] Stage block found, decoding not yet implemented")
+			log.Printf("[DEBUG] Stage block found, decoding in progress")
 			stage, stageDiags := decodeStageBlock(block, file)
 			diags = append(diags, stageDiags...)
 			file.Stages = append(file.Stages, stage)

@@ -36,8 +36,8 @@ func TestDecodePipelineBlock(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("Error decoding pipeline block: %s", diags)
 	}
-
-	pipeline, d := decodePipelineBlock(configFile.Blocks[0])
+	f := NewFile()
+	pipeline, d := decodePipelineBlock(configFile.Blocks[0], f)
 	if d.HasErrors() {
 		t.Fatalf("Error decoding pipeline block: %s", d)
 	}
