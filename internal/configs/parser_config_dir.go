@@ -2,12 +2,15 @@ package configs
 
 import (
 	"fmt"
+	"log"
 	"path/filepath"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 )
 
+// LoadFiles loads multiple configuration files from the specified paths
+// and returns a slice of File objects along with any diagnostics encountered.
 func (p *Parser) LoadFiles(paths []string) ([]*File, hcl.Diagnostics) {
 	var files []*File
 	var diags hcl.Diagnostics
@@ -15,7 +18,7 @@ func (p *Parser) LoadFiles(paths []string) ([]*File, hcl.Diagnostics) {
 	for _, path := range paths {
 		var f *File
 		var fDiags hcl.Diagnostics
-
+		log.Printf("[DEBUG] loading config file: %s", path)
 		f, fDiags = p.LoadConfigFile(path)
 		diags = append(diags, fDiags...)
 		if f != nil {

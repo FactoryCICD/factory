@@ -54,23 +54,34 @@ func (c *ValidateCommand) Run(rawArgs []string) int {
 	return 0
 }
 
-// Validate performs the validation and returns a list of diagnostics.
-// The diagnostics are handled by the caller of this function.
+// validate validates the given path by processing the directory, loading the files,
+// and returning any diagnostics encountered during the process.
 func (c *ValidateCommand) validate(path string) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	paths, dirDiags := c.processDir(path)
 	diags = diags.Extend(dirDiags)
-
+	log.Printf("[DEBUG] paths found: %s", paths)
 	fs := afero.NewOsFs()
 	parser := configs.NewParser(fs)
 
-	_, fileDiags := parser.LoadFiles(paths)
+	files, fileDiags := parser.LoadFiles(paths)
 	diags = diags.Extend(fileDiags)
-
+	fmt.Println(files)
 	return diags
 }
 
+// processDir processes the given directory path and returns a list of file paths and any diagnostics encountered.
+// If the path is a directory, it can be processed recursively if the `Recursive` flag is set.
+// If the path is a file, it will be treated as a single-element slice with the file info.
+// Only files with the ".hcl" extension will be included in the returned list of file paths.
+//
+// Parameters:
+//   - path: The directory path to process.
+//
+// Returns:
+//   - paths: A list of file paths found within the directory (including subdirectories if recursive).
+//   - diags: Any diagnostics encountered during the processing.
 func (c *ValidateCommand) processDir(path string) ([]string, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 	var paths []string
