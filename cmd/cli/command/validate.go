@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/factorycicd/factory/internal/configs"
+	"github.com/factoryci/factory"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/spf13/afero"
 )
@@ -63,7 +63,7 @@ func (c *ValidateCommand) validate(path string) hcl.Diagnostics {
 	diags = diags.Extend(dirDiags)
 	log.Printf("[DEBUG] paths found: %s", paths)
 	fs := afero.NewOsFs()
-	parser := configs.NewParser(fs)
+	parser := factory.NewParser(fs)
 
 	files, fileDiags := parser.LoadFiles(paths)
 	diags = diags.Extend(fileDiags)

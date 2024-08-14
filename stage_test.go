@@ -1,4 +1,4 @@
-package configs
+package factory
 
 import (
 	"testing"

@@ -1,4 +1,4 @@
-package configs
+package factory
 
 import (
 	"fmt"
@@ -47,7 +47,6 @@ func NewParser(fs afero.Fs) *Parser {
 // ends with ".json", in which case the HCL JSON syntax will be used.
 func (p *Parser) LoadHCLFile(path string) (hcl.Body, hcl.Diagnostics) {
 	src, err := p.fs.ReadFile(path)
-
 	if err != nil {
 		return nil, hcl.Diagnostics{
 			{

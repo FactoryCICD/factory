@@ -1,4 +1,4 @@
-package configs
+package factory
 
 import (
 	"github.com/hashicorp/hcl/v2"
