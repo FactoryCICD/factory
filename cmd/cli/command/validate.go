@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/factoryci/factory"
+	"github.com/factorycicd/factory"
 	"github.com/hashicorp/hcl/v2"
 )
 

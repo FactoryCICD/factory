@@ -1,4 +1,4 @@
-module github.com/factoryci/factory
+module github.com/factorycicd/factory
 
 go 1.20
 

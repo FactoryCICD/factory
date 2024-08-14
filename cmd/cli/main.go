@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/factoryci/factory/cmd/cli/command"
+	"github.com/factorycicd/factory/cmd/cli/command"
 	"github.com/mitchellh/cli"
 )
 
