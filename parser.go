@@ -83,7 +83,7 @@ func (p *Parser) LoadHCLFile(path string) (hcl.Body, hcl.Diagnostics) {
 //   - []*File: A slice of pointers to the parsed files.
 //   - hcl.Diagnostics: Any diagnostics encountered during parsing.
 func ParseFactoryDirectory() ([]*File, hcl.Diagnostics) {
-	return ParseDirectory("factory/", true)
+	return ParseDirectory(".factory/", true)
 }
 
 // ParseDirectory parses the directory at the given path and returns a slice of File pointers and any diagnostics encountered.
